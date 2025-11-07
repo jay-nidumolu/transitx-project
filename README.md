@@ -15,8 +15,8 @@
 -----
 
 
-##Repository Layout
-
+## Repository Layout
+<pre>
 transitx-project/
 ├─ data/ # (gitignored) local data cache
 ├─ notebooks/ # EDA, experiments
@@ -27,10 +27,9 @@ transitx-project/
 ├─ models/ # (gitignored) saved models
 ├─ deployment/ # FastAPI app, Dockerfile
 ├─ docs/ # diagrams, images
-
 └─ .github/workflows/ # CI/CD
 
-
+</pre>
 
 -----
 
@@ -48,5 +47,4 @@ pip install -r requirements.txt
 #copy or edit environment variables
 cp .env.example .env # ( if you have an example file)
 #or manually fill .env with your Azure Details
-
 
