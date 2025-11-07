@@ -1,0 +1,17 @@
+pandas
+numpy
+matplotlib
+scikit-learn
+xgboost
+fastapi
+
+uvicorn
+mlflow
+dvc
+python-dotenv
+pytest
+azureml-core
+azure-ai-ml
+azureml-mlflow
+azure-identity
+azure-storage-blob

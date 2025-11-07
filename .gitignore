@@ -1,0 +1,21 @@
+#python
+__pycache__/
+*.pyc
+.venv/
+.ipynb_checkpoints/
+
+
+# Data & models
+data/
+models/
+*.pickle
+*.pkl
+
+
+# env
+.env
+
+
+#dvc/mlflow artifacts
+.mlflow/
+.dvc/tmp/
