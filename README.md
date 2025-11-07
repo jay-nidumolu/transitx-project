@@ -33,6 +33,20 @@ transitx-project/
 
 -----
 
+## Architecture Overview
+
+```mermaid
+flowchart LR
+A[Transit APIs/Files] -->|Extract| B[Azure Blob (raw)]
+C[Weather API] -->|Extract| B
+B -->|Transform| D[Azure Blob (processed)]
+D -->|Train| E[Azure ML + MLflow]
+E -->|Package (Docker)| F[Azure Container Registry (ACR)]
+F -->|Deploy| G[Azure Container Instances (FastAPI)]
+G -->|Serve| H[Client / Streamlit Dashboard]
+
+-----
+
 
 ## Local Setup
 
