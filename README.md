@@ -44,6 +44,7 @@ flowchart LR
   E -->|Package Docker| F["Azure Container Registry - ACR"]
   F -->|Deploy| G["Azure Container Instances - FastAPI"]
   G -->|Serve| H["Client or Streamlit Dashboard"]
+```
 
 -----
 
