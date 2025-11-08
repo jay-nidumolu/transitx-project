@@ -4,7 +4,7 @@ matplotlib
 scikit-learn
 xgboost
 fastapi
-
+openpyxl
 uvicorn
 mlflow
 dvc
