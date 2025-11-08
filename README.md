@@ -84,6 +84,8 @@ cp .env.example .env # ( if you have an example file)
 
 ## Azure Storage Layout
 
+<pre>
+
 containers/
 ├─ raw/
 │ ├─ ttc_bus_delay_2023.csv
@@ -93,6 +95,8 @@ containers/
 └─ processed/
 ├─ ttc_combined_processed.csv
 └─ ttc_delay_summary.csv
+
+</pre>
 
 
 -----
