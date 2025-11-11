@@ -1,5 +1,6 @@
 #python
 __pycache__/
+logs/
 *.pyc
 .venv/
 .ipynb_checkpoints/
@@ -19,3 +20,7 @@ models/
 #dvc/mlflow artifacts
 .mlflow/
 .dvc/tmp/
+
+# macOS system files
+.DS_Store
+**/.DS_Store
