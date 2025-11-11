@@ -5,31 +5,8 @@ import pandas as pd
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from azure.storage.blob import BlobServiceClient
+from src.utils.firewall_helper import ensure_firewall_access
 from io import StringIO
-
-# ---- Ensures current public IP has access to Azure SQL ----- #
-
-def ensure_azure_firewall_rule():
-    try:
-        # Get your public IP
-        ip = requests.get("https://ifconfig.me").text.strip()
-        server_name = os.getenv("AZ_SQL_SERVER_NAME")  
-        rule_name = f"auto_rule_{ip.replace('.', '_')}"
-
-        print(f"Ensuring firewall access for current IP: {ip}")
-
-        # Run Azure CLI command to add rule (idempotent)
-        subprocess.run([
-            "az", "sql", "server", "firewall-rule", "create",
-            "--name", rule_name,
-            "--resource-group", os.getenv("AZ_RESOURCE_GROUP"),
-            "--server", server_name,
-            "--start-ip-address", ip,
-            "--end-ip-address", ip
-        ], check=False)
-        print("Firewall rule ensured for current IP.")
-    except Exception as e:
-        print(f"Could not update firewall rule automatically: {e}")
 
 
 load_dotenv()
@@ -63,7 +40,7 @@ def download_from_blob(blob_name:str, container_name="processed"):
 # ----- Load the CSV file from Blob to Azure SQL ------ #
 def load_to_sql(blob_name:str, table_name:str):
 
-    ensure_azure_firewall_rule()
+    ensure_firewall_access()
     df= download_from_blob(blob_name)
 
     engine = connect_sql()
