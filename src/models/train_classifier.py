@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
     best_model = train_classifier_model(target, features, df)
     os.makedirs("models", exist_ok=True)
-    save_path = "models/xgb_classfier.pkl"
+    save_path = "models/xgb_classifier.pkl"
 
     with open(save_path, "wb") as f:
         pickle.dump(best_model, f)
