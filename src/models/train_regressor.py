@@ -5,7 +5,6 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import pickle
 import mlflow
-import mlflow.sklearn
 from src.utils.model_utils import load_data, upload_to_blob, mlflow_starter
 
 # ---- Hyperparameter Tuning ----- #

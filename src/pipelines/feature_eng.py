@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import pickle
 from azure.storage.blob import BlobServiceClient
 from dotenv import load_dotenv
 from sklearn.preprocessing import LabelEncoder
@@ -30,6 +31,12 @@ def upload_to_model_blob(blob_name:str, local_path:str):
     with open(local_path, "rb") as f:
         model_cont.upload_blob(name=blob_name, data=f, overwrite=True)
     print(f"Uploaded {blob_name} to container {MODEL_CONTAINER}")
+
+# ----- Saving the encoders for inference ------ #
+def save_encoders(encoders:dict):
+    os.makedirs("models", exist_ok=True)
+    with open("models/encoders.pkl", "wb") as f:
+        pickle.dump(encoders, f)
 
 
 # ------ Feature Engineering ------ #
@@ -66,6 +73,8 @@ def feature_eng(df:pd.DataFrame):
 
     # Handling Missing
     df['direction'] = df['direction'].fillna("Unknown")
+    df['incident'] = df['incident'].fillna("None")
+    df['location'] = df['location'].fillna("Unknown")
     df.dropna(subset=['min_delay'], inplace=True)
 
     # Cap Outliers
@@ -73,10 +82,15 @@ def feature_eng(df:pd.DataFrame):
 
     # Encoding the categorical Variables
     cat_cols = ["route", "incident", "dayofweek", "location", "direction", "temp_bin", "rain_intensity"]
-    le = LabelEncoder()
+    encoders= {}
+    
     for col in cat_cols:
+        le = LabelEncoder()
         df[col] = df[col].astype(str)
         df[col] = le.fit_transform(df[col])
+        encoders[col] = le
+    save_encoders(encoders)
+
 
     df["is_delayed"] = (df["min_delay"] > 5).astype(int)
     
@@ -92,8 +106,6 @@ if __name__ == "__main__":
     df = read_proc_blob("transit_transformed_data_2023_2024.csv")
 
     df_feat_eng = feature_eng(df)
-
-    print(df.info())
 
     os.makedirs("data/model_input", exist_ok=True)
     local_path = "data/model_input/transit_features.csv"
