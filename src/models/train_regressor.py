@@ -71,7 +71,7 @@ if __name__ == "__main__":
     df = load_data()
 
     target = "min_delay"
-    
+
     features = df.drop(columns=[target, "is_delayed"])
 
 

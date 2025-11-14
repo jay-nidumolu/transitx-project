@@ -79,7 +79,6 @@ if __name__ == "__main__":
 
     save_path = "models/xgb_classifier.pkl"
 
-
     with open(save_path, "wb") as f:
         pickle.dump(best_model, f)
 
