@@ -88,9 +88,9 @@ def feature_eng(df:pd.DataFrame):
         le = LabelEncoder()
         df[col] = df[col].astype(str)
         df[col] = le.fit_transform(df[col])
+
         encoders[col] = le
     save_encoders(encoders)
-
 
     df["is_delayed"] = (df["min_delay"] > 5).astype(int)
     
@@ -120,6 +120,7 @@ if __name__ == "__main__":
 
     os.makedirs(DATA_DIR, exist_ok=True)
     local_path = os.path.join(DATA_DIR, "transit_features.csv")
+
 
     df_feat_eng.to_csv(local_path, index=False)
     print(f"Saved {local_path} locally.")

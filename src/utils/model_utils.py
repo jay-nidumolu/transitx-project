@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import mlflow
 from azure.storage.blob import BlobServiceClient
+<<<<<<< HEAD
 from io import StringIO
 
 load_dotenv()
@@ -28,7 +29,6 @@ def load_data():
 
 # -- Upload model to Azure Blob -- #
 def upload_to_blob(local_path, blob_name):
- 
     container = svc.get_container_client(os.getenv("MODEL_CONTAINER", "models"))
 
     with open(local_path, "rb") as f:

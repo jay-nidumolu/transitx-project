@@ -7,6 +7,7 @@ logs/
 
 
 # Data & models
+<<<<<<< HEAD
 data/**
 !data/**/*.dvc
 /models/**
@@ -30,6 +31,7 @@ data/**
 
 #mlflow
 mlruns/
+<<<<<<< HEAD
 
 # Airflow runtime
 airflow/airflow.cfg
@@ -37,3 +39,5 @@ airflow/airflow-webserver.pid
 airflow/logs/
 airflow/src/
 airflow/__pycache__/
+=======
+>>>>>>> 9d366de (Training Phase)
