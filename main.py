@@ -29,10 +29,10 @@ if __name__ == "__main__":
     logger.info(f"TransitX Data Pipeline Start | {datetime.now():%Y-%m-%d %H:%M:%S}")
 
     stages = [
-        run_stage("src/pipelines/extract.py"),
-        run_stage("src/pipelines/transform.py"),
-        run_stage("src/pipelines/feature_eng.py"),
-        run_stage("src/pipelines/load.py")
+        "src/pipelines/extract.py",
+        "src/pipelines/transform.py",
+        "src/pipelines/feature_eng.py",
+        "src/pipelines/load.py"
     ]
 
     try:
@@ -42,4 +42,4 @@ if __name__ == "__main__":
         logger.error(f"Pipeline Failed: {e}")
         sys.exit(1)
     finally:
-        logger.info(f"Pipeline FInished ;)")
+        logger.info(f"Pipeline FInished ;)\n")

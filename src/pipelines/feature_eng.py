@@ -77,9 +77,11 @@ def feature_eng(df:pd.DataFrame):
     for col in cat_cols:
         df[col] = df[col].astype(str)
         df[col] = le.fit_transform(df[col])
+
+    df["is_delayed"] = (df["min_delay"] > 5).astype(int)
     
     #Dropping Unnecessary
-    df.drop(columns=["timex", "timey", "vehicle"], errors='ignore', inplace=True)
+    df.drop(columns=["time_x", "time_y", "date", "vehicle"], errors='ignore', inplace=True)
 
     print(f"Feature Engineering Complete ")
     return df
@@ -90,6 +92,8 @@ if __name__ == "__main__":
     df = read_proc_blob("transit_transformed_data_2023_2024.csv")
 
     df_feat_eng = feature_eng(df)
+
+    print(df.info())
 
     os.makedirs("data/model_input", exist_ok=True)
     local_path = "data/model_input/transit_features.csv"

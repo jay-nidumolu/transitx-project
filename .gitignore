@@ -8,7 +8,7 @@ logs/
 
 # Data & models
 data/
-models/
+/models/
 *.pickle
 *.pkl
 
@@ -24,3 +24,7 @@ models/
 # macOS system files
 .DS_Store
 **/.DS_Store
+
+
+#mlflow
+mlruns/
