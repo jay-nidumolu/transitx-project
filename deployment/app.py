@@ -14,12 +14,16 @@ app= FastAPI(
     version="1.0"
 )
 
+print("API is running locally at: http://127.0.0.1:8000/docs")
+print("When deployed on Azure, visit your container app URL + /docs")
+
 @app.get("/")
 def root():
     return {
         "message": "Welcome to TransitX API ",
-        "docs_url": "/docs",
-        "health_url": "/health"
+        "local_docs_url": "http://127.0.0.1:8000/docs",
+        "health_check": "/health",
+        "note": "When deployed to Azure, use your cloud URL + /docs"
     }
 
 @app.get("/health")
