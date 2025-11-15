@@ -91,10 +91,6 @@ def feature_eng(df:pd.DataFrame):
         encoders[col] = le
     save_encoders(encoders)
 
-
-        encoders[col] = le
-    save_encoders(encoders)
-
     df["is_delayed"] = (df["min_delay"] > 5).astype(int)
     
     #Dropping Unnecessary

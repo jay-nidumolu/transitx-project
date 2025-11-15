@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 import pandas as pd
 import mlflow
 from azure.storage.blob import BlobServiceClient
-<<<<<<< HEAD
 from io import StringIO
 
 load_dotenv()
