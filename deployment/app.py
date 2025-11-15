@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
-import uvicorn
+import uvicorn, os
 import pandas as pd
 import pickle
 import requests
@@ -14,8 +14,6 @@ app= FastAPI(
     version="1.0"
 )
 
-print("API is running locally at: http://127.0.0.1:8000/docs")
-print("When deployed on Azure, visit your container app URL + /docs")
 
 @app.get("/")
 def root():
@@ -54,44 +52,44 @@ VALID_INCIDENTS = {
 class TransitInput(BaseModel):
     date: str = Field(..., description="Date in YYYY-MM-DD format")
     time: str = Field(..., description="Time in HH:MM format")
-    route: str = Field(..., example="32", description="Bus route number (numeric only)")
-    direction: str = Field(..., example="E", description="Direction (N/S/E/W or full name)")
-    location: str = Field(..., example="KENNEDY STATION", description="Known TTC stop or station")
-    incident: str = Field(default="None", example="Mechanical", description="Incident type or 'None'")
+    route: str = Field(..., json_schema_extra="32", description="Bus route number (numeric only)")
+    direction: str = Field(..., json_schema_extra="E", description="Direction (N/S/E/W or full name)")
+    location: str = Field(..., json_schema_extra="KENNEDY STATION", description="Known TTC stop or station")
+    incident: str = Field(default="None", json_schema_extra="Mechanical", description="Incident type or 'None'")
     min_gap: int = Field(default=10, ge=0, description="Gap between buses (in minutes)")
 
-    @validator("date")
+    @field_validator("date")
     def validate_date(cls, value):
         try:
             datetime.strptime(value, "%Y-%m-%d")
         except ValueError:
             raise HTTPException(
                 status_code=400,
-                detail="❌ Invalid date format. Use YYYY-MM-DD (e.g., 2024-05-12)."
+                detail="Invalid date format. Use YYYY-MM-DD (e.g., 2024-05-12)."
             )
         return value
 
-    @validator("time")
+    @field_validator("time")
     def validate_time(cls, value):
         try:
             datetime.strptime(value, "%H:%M")
         except ValueError:
             raise HTTPException(
                 status_code=400,
-                detail="❌ Invalid time format. Use HH:MM (e.g., 09:15)."
+                detail="Invalid time format. Use HH:MM (e.g., 09:15)."
             )
         return value
 
-    @validator("route")
+    @field_validator("route")
     def validate_route(cls, value):
         if not value.isdigit():
             raise HTTPException(
                 status_code=400,
-                detail="❌ Route must be numeric (e.g., '32', '91', '505')."
+                detail="Route must be numeric (e.g., '32', '91', '505')."
             )
         return value
 
-    @validator("direction", pre=True)
+    @field_validator("direction", mode='before')
     def normalize_direction(cls, value):
         value = value.strip().capitalize()
         if value in {"N", "S", "E", "W"}:
@@ -106,12 +104,12 @@ class TransitInput(BaseModel):
             return "W"
         raise HTTPException(status_code=400, detail=f"Invalid direction '{value}'. Use N/S/E/W.")
 
-    @validator("incident")
+    @field_validator("incident")
     def validate_incident(cls, value):
         if value not in VALID_INCIDENTS:
             raise HTTPException(
                 status_code=400,
-                detail=f"❌ Invalid incident '{value}'. Choose from: {', '.join(VALID_INCIDENTS)}."
+                detail=f"Invalid incident '{value}'. Choose from: {', '.join(VALID_INCIDENTS)}."
             )
         return value
 
@@ -327,5 +325,6 @@ def predict(input_data:TransitInput):
     return response
 
 if __name__ =="__main__":
+
 
     uvicorn.run("deployment.app:app", host="127.0.0.1", port=8000, reload=True)
