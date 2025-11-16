@@ -7,7 +7,6 @@ logs/
 
 
 # Data & models
-<<<<<<< HEAD
 data/**
 !data/**/*.dvc
 /models/**
