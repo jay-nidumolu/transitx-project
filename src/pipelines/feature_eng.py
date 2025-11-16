@@ -107,8 +107,19 @@ if __name__ == "__main__":
 
     df_feat_eng = feature_eng(df)
 
-    os.makedirs("data/model_input", exist_ok=True)
-    local_path = "data/model_input/transit_features.csv"
+    
+    cwd = os.getcwd()
+    if "transitx-project" in cwd:
+        root_index = cwd.index("transitx-project") + len("transitx-project")
+        ROOT_DIR = cwd[:root_index]
+    else:
+    
+        ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+
+    DATA_DIR = os.path.join(ROOT_DIR, "data", "model_input")
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    local_path = os.path.join(DATA_DIR, "transit_features.csv")
 
     df_feat_eng.to_csv(local_path, index=False)
     print(f"Saved {local_path} locally.")

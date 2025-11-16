@@ -3,22 +3,32 @@ from dotenv import load_dotenv
 import pandas as pd
 import mlflow
 from azure.storage.blob import BlobServiceClient
+from io import StringIO
 
 load_dotenv()
 
+conn_str = os.getenv("AZ_STORAGE_CONNECTION_STRING")
+svc = BlobServiceClient.from_connection_string(conn_str)
+
 # -- Loading The Data -- #
 def load_data():
-    path = "data/model_input/transit_features.csv"
-    if not os.path.exists(path):
-        raise FileNotFoundError("Run feature_eng.py before training")
-    df = pd.read_csv(path)
+    blob_path = "transit_features.csv"
+    container = svc.get_container_client(os.getenv("DATA_CONTAINER_MODEL_INPUT", "model-input"))
+    try:
+        blob_client = container.get_blob_client(blob_path)
+        blob_data = blob_client.download_blob().readall()
 
-    return df
+        # Read CSV from blob content
+        df = pd.read_csv(StringIO(blob_data.decode("utf-8")))
+        print(f"[INFO] Loaded data from Azure Blob: model-input/{blob_path}")
+        return df
+
+    except Exception as e:
+        raise FileNotFoundError(f"Could not load {blob_path} from Azure Blob: {e}")
 
 # -- Upload model to Azure Blob -- #
 def upload_to_blob(local_path, blob_name):
-    conn_str = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-    svc = BlobServiceClient.from_connection_string(conn_str)
+ 
     container = svc.get_container_client(os.getenv("MODEL_CONTAINER", "models"))
 
     with open(local_path, "rb") as f:
