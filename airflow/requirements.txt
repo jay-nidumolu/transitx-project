@@ -1,0 +1,23 @@
+# --- Core Airflow ---
+apache-airflow==2.9.2
+
+# --- Data handling ---
+pandas
+numpy
+requests
+python-dotenv
+
+# --- Azure Blob Storage ---
+azure-storage-blob
+
+# --- ML + Model Support ---
+scikit-learn
+xgboost
+mlflow
+openpyxl
+
+# --- Optional: if any DAG runs shell commands or scripts ---
+subprocess32; python_version < "3.3"
+
+dvc
+dvc[azure] 

@@ -30,3 +30,10 @@ data/**
 
 #mlflow
 mlruns/
+
+# Airflow runtime
+airflow/airflow.cfg
+airflow/airflow-webserver.pid
+airflow/logs/
+airflow/src/
+airflow/__pycache__/

@@ -1,0 +1,79 @@
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+  airflow-init:
+    image: apache/airflow:2.9.2
+    depends_on:
+      - postgres
+    env_file:
+      - /Users/jaynidumolu/Documents/transitx-project/.env
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
+    entrypoint: >
+      /bin/bash -c "airflow db init &&
+                    airflow users create --username airflow --password airflow --firstname admin --lastname user --role Admin --email admin@example.com"
+    volumes:
+      - /Users/jaynidumolu/Documents/transitx-project:/opt/transitx-project
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ../src:/opt/airflow/src   
+      - ./requirements.txt:/opt/airflow/requirements.txt
+
+  airflow-webserver:
+    image: apache/airflow:2.9.2
+    restart: always
+    depends_on:
+      - postgres
+    env_file:
+      - /Users/jaynidumolu/Documents/transitx-project/.env
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
+    ports:
+      - "8080:8080"
+    command: webserver
+    volumes:
+      - /Users/jaynidumolu/Documents/transitx-project:/opt/transitx-project
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ../src:/opt/airflow/src           
+      - ./requirements.txt:/opt/airflow/requirements.txt
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.2
+    restart: always
+    depends_on:
+      - airflow-webserver
+      - postgres
+    env_file:
+      - /Users/jaynidumolu/Documents/transitx-project/.env
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
+      - PYTHONPATH=/opt/airflow:/opt/airflow/src
+    command: scheduler
+    volumes:
+      - /Users/jaynidumolu/Documents/transitx-project:/opt/transitx-project
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ../src:/opt/airflow/src         
+      - ./requirements.txt:/opt/airflow/requirements.txt
+
+volumes:
+  postgres-db-volume:
