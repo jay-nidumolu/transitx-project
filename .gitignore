@@ -7,8 +7,10 @@ logs/
 
 
 # Data & models
-data/
-/models/
+data/**
+!data/**/*.dvc
+/models/**
+!/models/**/*.dvc
 *.pickle
 *.pkl
 

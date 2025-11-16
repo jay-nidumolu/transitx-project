@@ -1,0 +1,5 @@
+[core]
+    remote = azure_blob
+['remote "azure_blob"']
+    url = azure://transitxcontainer/data
+    connection_string = ""

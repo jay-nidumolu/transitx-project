@@ -1,0 +1,5 @@
+outs:
+- md5: 5e16fe72fd07fea88761ca7dc6665711
+  size: 3959344
+  hash: md5
+  path: xgb_classifier.pkl
