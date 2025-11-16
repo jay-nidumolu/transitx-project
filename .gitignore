@@ -31,6 +31,9 @@ data/**
 #mlflow
 mlruns/
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 81ad77a (track data with DVC)
 
 # Airflow runtime
 airflow/airflow.cfg
@@ -38,5 +41,3 @@ airflow/airflow-webserver.pid
 airflow/logs/
 airflow/src/
 airflow/__pycache__/
-=======
->>>>>>> 9d366de (Training Phase)
