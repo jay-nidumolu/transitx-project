@@ -42,7 +42,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t $DOCKERHUB_USERNAME/transitx:latest .
+          docker build -t $DOCKERHUB_USERNAME/transitx:latest -f deployment/Dockerfile .
 
       - name: Log in to DockerHub
         uses: docker/login-action@v3
