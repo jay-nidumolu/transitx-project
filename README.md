@@ -59,11 +59,7 @@ transitx-project/
 │   ├── model_input/
 │   ├── predictions/
 ├── deployment/
-<<<<<<< HEAD
 │   ├── app.py                    # FastAPI streaming inference API
-=======
-│   ├── app.py            # FastAPI streaming inference API
->>>>>>> 5a8a74a (Full Documentation and updated README)
 │   ├── Dockerfile
 ├── docs/                         # All project documentation
 │   ├── architecture_overview.md
