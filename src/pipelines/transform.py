@@ -39,9 +39,11 @@ def read_blob_csv(name):
 
 # ----- Upload the Data frame to Blob ------ #
 def upload_df_blob(df, name):
-    out = StringIO()
-    df.to_csv(out, index=False)
-    proc_container.upload_blob(name=name, data= out.getvalue(), overwrite=True)
+    os.makedirs("data/processed", exist_ok=True)
+    local_path = "data/processed/transit_processed.csv"
+    df.to_csv(local_path, index=False)
+    with open(local_path, "rb") as f:
+        proc_container.upload_blob(name=name, data= f, overwrite=True)
     print("Uploaded the processed file to the blob")
 
 # ----- Transforming the dataframes ------ #
