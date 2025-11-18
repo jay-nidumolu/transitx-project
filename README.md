@@ -59,7 +59,7 @@ transitx-project/
 │   ├── model_input/
 │   ├── predictions/
 ├── deployment/
-│   ├── app.py            # FastAPI streaming inference API
+│   ├── app.py                    # FastAPI streaming inference API
 │   ├── Dockerfile
 ├── docs/                         # All project documentation
 │   ├── architecture_overview.md
@@ -82,13 +82,12 @@ transitx-project/
 │   └── utils/
 │       ├── blob_client.py
 │       ├── logger.py
-|       ├── model_utils.py
+│       ├── model_utils.py
 │       └── firewall_helper.py
-├── main.py  # manual etl orchestration
-├── requirements.txt # Project dependencies
-── .github/workflows/
+├── main.py                       # Manual ETL orchestration
+├── requirements.txt              # Project dependencies
+└── .github/workflows/
     └── ci-cd.yaml
-```
 
 ---
 
