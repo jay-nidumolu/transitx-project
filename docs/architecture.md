@@ -1,46 +1,56 @@
 # TransitX — Architecture Overview
 
-TransitX is a cloud-native machine learning system for predicting public transit delays.  
-It includes an ETL pipeline, feature engineering, ML training, experiment tracking, CI/CD automation, and containerized API deployment on **Azure Container Apps (ACA)**.
+TransitX is a full end-to-end machine learning system deployed on Azure, with ETL pipelines, feature engineering, cloud storage, SQL loading, model training, CI/CD, and an API deployed on Azure Container Apps (ACA).
 
 ---
 
-## System Diagram (High Level)
+## High-Level System Diagram
 
 ```mermaid
 flowchart LR
-    A["TTC Delay Data + Weather API"] --> B["ETL: extract.py"]
-    B --> C["Azure Blob Storage (raw)"]
-    C --> D["ETL: transform.py + feature_eng.py"]
-    D --> E["Azure Blob Storage (processed)"]
-    E --> F["load.py"]
-    F --> G["Model Training (XGBoost / sklearn)"]
-    G --> H["MLflow Tracking (mlruns/)"]
-    G --> I["Saved Models in models/"]
-    I --> J["FastAPI App (deployment/app.py)"]
-    J --> K["DockerHub Image: jaynid00/transitx-api"]
-    K --> L["Azure Container Apps (ACA): transitx-api-app"]
-    L --> M["Public HTTPS Endpoint (/docs)"]
+    A["TTC Delay Data + Weather API"] --> B["Extract: extract.py"]
+    B --> C["Azure Blob Storage: raw"]
+
+    C --> D["Transform: transform.py"]
+    D --> E["Azure Blob Storage: processed"]
+
+    E --> F["Feature Engineering: feature_eng.py"]
+    F --> G["Azure Blob Storage: model-input"]
+
+    G --> H["Model Training (XGBoost / sklearn)"]
+    H --> I["MLflow Tracking (mlruns/)"]
+    H --> J["Saved Models in models/"]
+
+    E --> K["Azure SQL Loading (load.py)"]
+
+    J --> L["FastAPI App (deployment/app.py)"]
+    L --> M["DockerHub Image: jaynid00/transitx-api"]
+    M --> N["Azure Container Apps (ACA): transitx-api-app"]
+    N --> O["Public HTTPS Endpoint (/docs)"]
 ```
 
 ---
 
-## Components Breakdown
+## Data Containers Overview
+|Container|	Purpose|
+|---------|--------|
+|`raw`|	Raw TTC & weather files|
+|`processed`|	Cleaned & merged dataset (post-transform)|
+|`model-input`	| Feature-engineered ML-ready data|
 
-### 1. Data Layer
-- Raw & processed data stored in Azure Blob Storage
-- ETL scripts under src/pipelines/
-### 2. Feature Engineering
-- Implemented in feature_eng.py
-- Handles time-based and weather-based features
-### 3. ML Training
-- Classifier & regressor in models/
-- Tracked using MLflow (mlruns/)
-### 4. Serving Layer
-- FastAPI inference app in deployment/app.py
-- Dockerized and pushed to DockerHub
-### 5. Deployment
-- Final container deployed via Azure Container Apps
-- Provides autoscaling, HTTPS, logs, revision management
+---
 
-This architecture reflects real-world MLOps patterns — modular, scalable, cloud-native.
+## Azure SQL
+
+`load.py` inserts processed data into Azure SQL for:
+- dashboards
+- analytics
+- BI use cases
+
+---
+
+This architecture reflects clear separation of stages:
+
+**ETL → Feature Engineering → Model Training → Deployment**
+
+---
