@@ -8,7 +8,7 @@ import os
 st.title("📊 Transit Analytics — Delay Trends (TTC 2023–2024)")
 st.caption("Analyze TTC delay + weather patterns using processed data from 2023–2024.")
 
-LOCAL_PATH = "../data/processed/transit_processed.csv"
+LOCAL_PATH = "data/transit_processed.csv"
 
 # -----------------------------
 # Load Data
