@@ -9,8 +9,6 @@ logs/
 # Data & models
 data/**
 !data/**/*.dvc
-/models/**
-!/models/**/*.dvc
 *.pickle
 *.pkl
 
