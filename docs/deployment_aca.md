@@ -1,36 +1,27 @@
-# TransitX — Deployment & Inference Architecture (Local → Docker → Azure Container Apps)
+# TransitX — Deployment & Inference Architecture 
+
+***(Local → Docker → Azure Container Apps → Railway)***
 
 TransitX exposes two kinds of model inference:
 
-###  **1. Streaming / live inference** (FastAPI `app.py`)  
-Predicts TTC transit delays for **past or future datetimes** using:
-- Historical weather (Open-Meteo archive)
-- Forecasted weather (Open-Meteo forecast)
-- On-the-fly feature generation
-
-###  **2. Batch inference** (`predict.py`)  
-Predicts delays for large datasets (e.g., `transit_features.csv`) and uploads results to Azure Blob Storage.
-
-This document describes how the API and batch inference were:
-
-**Developed locally → Dockerized → Verified → Deployed to Azure Container Apps (ACA).**
-
----
-
-## 1. Local FastAPI Development (`app.py`)
-
-The primary inference API is implemented in:
+##  1. Streaming / live inference** (FastAPI)  
+Implemented in:
 
 `deployment/app.py`
 
-It supports:
+This endpoint predicts TTC transit delays for **past or future timestamps** using:
 
-###  **Streaming predictions**
-```python
+- Weather archive (Open-Meteo)
+- Weather forecast (Open-Meteo)
+- Label encoders (`encoders.pkl`)
+- Regression model (`xgb_regressor.pkl`)
+- On-the-fly feature engineering
+
+### Main Endpoint
+```http
 POST /predict
 ```
-
-Takes:
+Input JSON:
 - date
 - time
 - route
@@ -39,229 +30,194 @@ Takes:
 - incident
 - min_gap
 
-Then internally:
-1. Extracts timestamp → hour/month/dayofweek
-2. Fetches historical or forecast weather
-3. Encodes categorical inputs
-4. Loads ML models (xgb_regressor.pkl, encoders.pkl)
-5. Generates:
-    - delay minutes
-    - is_delayed (boolean)
-    - weather interpretation
-    - human-readable summary
+Output JSON:
+- predicted_delay_minutes
+- is_delayed
+- weather_condition
+- rain_condition
+- summary
 
-###  **Health Check**
-```bash
+### Supporting Endpoints
+```http
 GET /health
-```
-
-### **Docs**
-```bash
 GET /docs
 ```
-
-### **Local development command:**
+### Run locally
 ```bash
 uvicorn deployment.app:app --reload
 ```
-
-This validated:
-- API input validation (Pydantic)
-- Schema checking
-- Feature transformation
-- Weather API integration
-- Model prediction consistency
-- Summary text generation
+Validates:
+- Pydantic request schema
+- Time/weather feature generation
+- Model + encoder loading
+- Summary explanation logic
 
 ---
 
-## 2. Streaming Inference Logic (Inside `app.py`)
+## 2. Batch Inference (`predict.py`)
 
-`app.py` performs feature engineering at inference time, including:
+Implemented in:
 
-### **✔ Time features:**
-- Hour
-- Month
-- Dayofweek
-- Rush hour flag
-- Weekend flag
+`src/models/predict.py`
 
-### **✔ Weather features:**
-- Temperature reading
-- Rain intensity
-- Temperature category
-- Rain category
+**Input**
 
-### **✔ Encoding:**
-`encoders.pkl` is loaded and used to apply label encodings consistently.
+`data/model_input/transit_features.csv`
 
-### **✔ Regression model:**
-`xgb_regressor.pkl` → predicts **delay_minutes**
+**Output**
 
----
+`data/predictions/transit_predictions.csv`
 
-## 3. Batch Inference (`predict.py`)
+Batch inference performs:
+- Model loading (classifier + regressor)
+- Delay-minute prediction
+- Delay-class prediction
+- (Optional) Upload to Azure Blob Storage
 
-Batch inference is implemented in:
-
-```bash
-src/models/predict.py
-```
-
-### **Reads Input**:
-```bash
-data/model_input/transit_features.csv
-```
-
-### **Loads both models:**
-- `xgb_classifier.pkl`
-- `xgb_regressor.pkl`
-
-### **Creates predictions:**
-- pred_delay_minutes
-- pred_is_delayed
-
-### **Saves output locally:**
-```bash
-data/predictions/transit_predictions.csv
-```
-
-### **Uploads batch predictions to Azure Blob (predictions container):**
-Uses:
-```python
-BlobServiceClient.from_connection_string(...)
-```
-### **Batch mode is used for:**
-- Offline evaluation
-- Reporting
-- Bulk prediction jobs
-- Airflow-triggered inference
+Used for:
+- Offline scoring
+- Bulk predictions
+- Airflow automated jobs
 
 ---
 
-## 4. Local Dockerization
-`app.py` + models + encoders + FastAPI were packaged into a Docker image using:
-```bash
-deployment/Dockerfile
-```
-**Build:**
-```bash
-docker build -t transitx-api -f deployment/Dockerfile .
-```
-**Run locally:**
-```bash
-docker run -p 8000:8000 transitx-api
-```
+## 3. Dockerization
 
-Validated:
-- Model loading inside container
-- Weather API communication
-- Endpoints: `/predict`, `/health`, `/docs`
-- Streaming inference in container
-- Correct behavior for both past and future dates
+TransitX’s API is containerized via:
+
+`deployment/Dockerfile`
+
+**Build**
+
+`docker build -t transitx-api -f deployment/Dockerfile .`
+
+**Run**
+
+`docker run -p 8000:8000 transitx-api`
+
+Validates:
+- Weather API access inside container
+- Model + encoder file availability
+- Containerized /predict behaves correctly
 
 ---
 
-## 5. Push to DockerHub
-The verified image was tagged and pushed:
+## 4. DockerHub Publishing
+
+
+Once validated locally:
 ```bash
 docker tag transitx-api jaynid00/transitx-api:latest
 docker push jaynid00/transitx-api:latest
 ```
 
-This image is used directly by Azure.
+This pushed image becomes the artifact for cloud deployment.
 
 ---
 
-## 6. Deployment to Azure Container Apps (ACA)
+## 5. Original Cloud Deployment — Azure Container Apps (ACA)
 
-The final model was deployed using the **Azure Portal** (GUI):
+Azure ACA was the initial production deployment path.
 
-### Steps Performed:
-1. **Create ACA environment** (`transitx-api`)
-- Region: Canada Central
-- Log analytics: (optional)
-
-2. **Create Container App** (`transitx-api-app`)
-- Source: **DockerHub**
-- Image: `jaynid00/transitx-api:latest`
-- Exposed port: 8000
-- Ingress: Enabled (External)
-- Environment Variables:
+### Deployment Steps
+1. Create ACA Environment
+  - Region: Canada Central
+2. Create Container App (transitx-api-app)
+  - Source: DockerHub
+  - Image: jaynid00/transitx-api:latest
+  - Port: 8000
+  - Ingress: External Enabled
+  - Environment Variables:
     - `AZ_STORAGE_CONNECTION_STRING=...`
+3. Deploy Container
 
-3. **Deploy container**
-
-4. **Verified endpoint via**:
+**Azure Swagger URL (no longer active)**
 ```bash
-https://<app-name>.<region>.azurecontainerapps.io/docs
+https://transitx-api-app.jollystone-d7b68f23.canadacentral.azurecontainerapps.io/docs
 ```
+ACA provided:
+- Autoscaling
+- Secure ingress
+- Managed revisions
+
+---
+
+## 6. Current Live Deployment — Railway
+After Azure subscription expiration, the API was redeployed to **Railway**.
+
+**Current Production API Endpoint**
+```arduino
+https://transitx-project-production.up.railway.app/predict
+```
+Railway Advantages:
+- Free-tier hosting
+- Auto-deploys on GitHub push
+- Scale-to-zero mode
+- Simple log viewer
+
+This ensures the inference service remains public and accessible.
 
 ---
 
 ## 7. Updating the Deployment
-To update prediction logic or models:
 
-### Step 1: Rebuild image
+### 1. Rebuild container
 ```bash
 docker build -t transitx-api .
 ```
-### Step 2: Push to DockerHub
+
+### 2. Push new version
 ```bash
 docker push jaynid00/transitx-api:latest
 ```
-### Step 3: Update ACA revision
 
-(Portal → "Create Revision" OR via CLI)
-
-Azure Container Apps automatically:
-- Creates a new revision
-- Keeps the old revision for rollback
+### 3. Cloud pulls latest image
+- Azure ACA → Create new revision
+- Railway → Auto-deploys automatically
 
 ---
 
 ## 8. Logs & Monitoring
-### View ACA logs:
+
+### Azure ACA Logs
 
 Azure Portal → Container Apps → Logs
-### Or via CLI:
+
+Or via CLI:
 ```bash
 az containerapp logs show \
   --name transitx-api-app \
-  --resource-group <RESOURCE_GROUP>
-  ```
+  --resource-group transitx-rg
+```
 
-  ---
+### Railway Logs
+Railway Dashboard → Deployments → Logs
 
-## 9. Summary of Deployment Flow
+---
 
-> **Deployment Flow**
->
-> Local FastAPI (`app.py`)  
-> ↓  
-> Local Streaming Inference Testing  
-> ↓  
-> Local Batch Inference (`predict.py`)  
-> ↓  
-> Docker Image Built & Tested Locally  
-> ↓  
-> DockerHub Push (`jaynid00/transitx-api`)  
-> ↓  
-> Azure Portal → Container App Deployment  
-> ↓  
-> **Public HTTPS Endpoint (`/docs`, `/predict`)**
+## 9. Summary: Deployment Flow (Local → Cloud)
+```scss
+Local Development (FastAPI)
+        ↓
+Local Testing (Uvicorn / Docker)
+        ↓
+Docker Build
+        ↓
+DockerHub Push (jaynid00/transitx-api)
+        ↓
+Cloud Deployment
+   • Azure Container Apps (original)
+   • Railway (current live API)
+        ↓
+Public Inference Endpoint (/predict)
+```
 
-
-This workflow demonstrates full MLOps readiness:
-- API development
-- Feature engineering at inference time
-- Batch and streaming predictions
-- Containerization
-- Cloud deployment (ACA)
-- Model updating through CI/CD
-- Azure Blob integration
-- Weather API real-time data use
-
-This deployment architecture is production-aligned, cloud-native, and demonstrates strong MLOps engineering practices.
+This workflow demonstrates full MLOps maturity:
+- Real-time + batch inference
+- On-demand feature engineering
+- Reproducible Docker builds
+- Cloud-native deployment
+- Model & pipeline versioning (DVC)
+- Automated rollout through CI/CD
 
 ---

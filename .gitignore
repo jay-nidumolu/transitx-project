@@ -15,7 +15,7 @@ data/**
 
 # env
 .env
-dashboard/.streamlit/secrets.toml
+
 
 
 #dvc/mlflow artifacts

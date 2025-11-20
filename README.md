@@ -5,7 +5,29 @@
 - Route-level metadata
 - Inference-time feature engineering
 
-This project demonstrates modern data engineering, machine learning, cloud deployment, and CI/CD automation.
+This project demonstrates modern **data engineering, machine learning, cloud deployment, and CI/CD automation.**
+
+---
+
+## Live Demo
+
+### Interactive Streamlit Dashboard
+[Live Streamlit Dashboard](https://transitx-project-jknidumolu.streamlit.app)
+
+### Live Real-Time API (FastAPI via Railway)
+`POST https://transitx-project-production.up.railway.app/predict`
+
+---
+
+## Project Highlights
+- End-to-end ETL → Feature Engineering → Model Training → Deployment
+- Real-time inference API (FastAPI + Docker + Railway)
+- Interactive analytics dashboard (Streamlit)
+- Airflow DAG for full orchestration
+- DVC for dataset/model versioning
+- CI/CD pipeline with GitHub Actions
+- Cloud deployment originally on **Azure Container Apps**, now hosted on Railway
+- Designed as a real-world MLOps showcase project
 
 ---
 
@@ -15,10 +37,9 @@ Build a production-grade ML system that:
 - Generates ML-ready engineered features
 - Trains XGBoost models
 - Supports batch & real-time streaming inference
-- Serves predictions through FastAPI
-- Is containerized with Docker
-- Is deployed on Azure Container Apps
-- Uses DVC for versioning, GitHub Actions for CI/CD
+- Serves predictions via containerized FastAPI
+- Deploys on Cloud (Azure → Railway → GCP planned)
+- Maintains reproducibility via DVC + CI/CD
 
 ---
 
@@ -38,7 +59,12 @@ Build a production-grade ML system that:
 - FastAPI
 - Docker
 - DockerHub
-- Azure Container Apps (ACA)
+- Azure Container Apps (Initially)
+- Railway (now)
+
+### Dashboard
+- Streamlit
+- Plotly
 
 ### CI/CD
 - GitHub Actions
@@ -53,11 +79,22 @@ transitx-project/
 ├── airflow/                      
 │   ├── dags/                    
 │   └── docker-compose.yaml      
-├── data/                         # gitignored
+├── data/                         # mostly gitignored
 │   ├── raw/
 │   ├── weather/
 │   ├── model_input/
 │   ├── predictions/
+│   ├── processed/
+├── dashboard/                    # Streamlit analytics dashboard
+│   ├── app.py
+│   ├── data/transit_processed.csv
+│   ├── requirements.txt        # for dashboard
+│   ├──.streamlit/
+│   │   ├── 1_Transit_Analytics.py
+│   │   └── 2_Live_Inference.py
+│   └── pages/
+│       ├── 1_Transit_Analytics.py
+│       └── 2_Live_Inference.py
 ├── deployment/
 │   ├── app.py                    # FastAPI streaming inference API
 │   ├── Dockerfile
@@ -88,7 +125,7 @@ transitx-project/
 ├── requirements.txt              # Project dependencies
 └── .github/workflows/
     └── ci-cd.yaml
-
+```
 ---
 
 ## Architecture Overview
@@ -108,10 +145,13 @@ flowchart TB
     H --> I["DVC-Tracked Models & Encoders"]
     I --> J["FastAPI (app.py)"]
     J --> K["DockerHub Image"]
-    K --> L["Azure Container Apps (ACA)"]
+    K --> L["Railway Deployment"]
     L --> M["Public HTTPS Endpoint (/docs, /predict)"]
 ```
-### Pipeline:
+
+---
+
+### Pipeline  
 ***ETL → Feature Engineering → Model Training → Deployment***
 
 > **End-to-End Workflow**  
@@ -126,9 +166,11 @@ flowchart TB
 > ↓  
 > DockerHub Push (`jaynid00/transitx-api`)  
 > ↓  
-> Azure Portal → Container App Deployment  
+> **(Previously) Azure Container Apps Deployment**  
 > ↓  
-> **Public HTTPS Endpoint (`/docs`, `/predict`)**
+> **(Current) Railway Deployment** — Builds and deploys automatically from GitHub  
+> ↓  
+> **Public HTTPS Endpoint (`/predict`)**
 
 ---
 
@@ -167,35 +209,80 @@ MLflow logs metrics locally in `mlruns/`.
 ---
 
 ## Inference Capabilities
-### 1. Streaming / Real-Time Inference
 
+### 1. Streaming / Real-Time Inference
 Implemented in:
 - `deployment/app.py`
 
-Predicts:
-- Delay minutes
+Provides:
+- Predicted delay in minutes
 - Delay classification
 - Weather impact explanation
-- Works for **past & future** timestamps
+- Works for both **future** and **historical** timestamps
 
 ### 2. Batch Inference
 Implemented in:
 - `src/models/predict.py`
-  - Input: `data/model_input/transit_features.csv`
-  - Output: `data/predictions/transit_predictions.csv`
-Uploads predictions → Azure Blob (`predictions` container)
+
+Input:
+- `data/model_input/transit_features.csv`  
+
+Output:
+- `data/predictions/transit_predictions.csv`  
+- Can automatically upload results to Azure Blob (optional)
 
 ---
 
+## Streamlit Dashboard
+
+### Live Dashboard
+
+[Live Streamlit Dashboard](https://transitx-project-jknidumolu.streamlit.app)
+
+**Pages Include:**
+
+### 1. Transit Analytics (2023–2024)
+
+Interactive filters for:
+- Year
+- Month range
+- Top 30 routes
+- Delay range
+- Weekend toggle
+- Rain / No Rain
+
+**Visualizations:**
+- Top 10 delayed routes
+- Daily delay trend
+- Temperature vs delay (rain intensity)
+
+### 2. Live Prediction (Connected to FastAPI API)
+
+User inputs:
+- Date
+- Time
+- Route
+- Location
+- Incident type
+- Gap between buses
+
+Outputs:
+- Predicted delay
+- Classification
+- Weather-impact explanation
+
+---
+
+
 ## Dockerization
 
-Dockerfile: `deployment/Dockerfile`
+Dockerfile location: `deployment/Dockerfile`
 
-**Build image**
+**Build the image**
 ```bash
 docker build -t transitx-api .
 ```
-**Test locally**
+**Run locally**
 ```bash
 docker run -p 8000:8000 transitx-api
 ```
@@ -206,23 +293,47 @@ docker push jaynid00/transitx-api:latest
 
 ---
 
-## Azure Deployment (ACA)
+## Deployment History
 
-Detailed steps in:
+Detailed Deployment Documentation:
+
 - `docs/deployment_aca.md`
 
-### Deployment Process
-1. Verify API locally
-2. Build & push Docker image
-3. Create ACA environment (transitx-api)
-4. Deploy container (transitx-api-app)
-5. Inject Azure connection string
-6. Access public endpoint
+### Azure Container Apps (Original Deployment)
 
-### Public Swagger docs
-```php-template
-https://<your-app>.<region>.azurecontainerapps.io/docs
+The system was first deployed to Azure Container Apps as part of the full MLOps workflow:
+1. Build & push Docker image
+2. Deploy container to ACA
+3. Inject environment variables
+4. Expose public HTTPS endpoint
+
+Azure endpoint: *(no longer active due to subscription expiry)*
+```bash
+https://transitx-api-app.jollystone-d7b68f23.canadacentral.azurecontainerapps.io/docs
 ```
+
+### Current Live Deployment — Railway
+
+A lightweight public API deployment is now hosted on Railway:
+
+**Live API Endpoint**
+```arduino
+https://transitx-project-production.up.railway.app/predict
+```
+
+Railway Deployment Features:
+- Free-tier hosting
+- Auto-build on every GitHub push
+- Sleep/scale-to-zero (cost-efficient)
+- Ideal for public demos and testing
+
+### Future Deployment (Optional)
+A production-ready deployment on Google Cloud Run is planned, leveraging:
+- Always-free tier
+- Fully serverless autoscaling
+- Stable HTTPS endpoint.
+
+This README will be updated once Cloud Run deployment is complete.
 
 ---
 
