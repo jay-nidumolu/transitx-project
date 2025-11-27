@@ -51,7 +51,7 @@ jobs:
       - name: Check if API-related files changed
         id: api_changes
         run: |
-          echo "::set-output name=changed::$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E 'deployment/Dockerfile|src/|requirements.txt' || true)"
+          echo "changed=$(git diff ${{ github.event.before }} ${{ github.sha }} | grep -E 'deployment/Dockerfile|src/|requirements.txt' || true)" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
         if: steps.api_changes.outputs.changed != ''

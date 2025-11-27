@@ -103,6 +103,7 @@ def fetch_weather_data(year: int):
 # ----- Entry Point ----- #
 if __name__ == "__main__":
     print(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] Starting extraction......")
+    
     for year in [2023, 2024]:
         fetch_transit_data(year)
         fetch_weather_data(year)
