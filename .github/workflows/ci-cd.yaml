@@ -38,8 +38,9 @@ jobs:
       
       - name: Set up GCP authentication
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > gcp-key.json
-          export GOOGLE_APPLICATION_CREDENTIALS=$PWD/gcp-key.json
+          echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" > sa-key.json
+          gcloud auth activate-service-account --key-file=sa-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=sa-key.json
 
 
       - name: DVC Pull Data
