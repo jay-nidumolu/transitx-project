@@ -46,7 +46,7 @@ jobs:
       - name: DVC Pull Data
         run: |
           dvc remote modify gcp_remote credentialpath sa-key.json
-          dvc pull
+          dvc pull --force
 
       - name: Check if API-related files changed
         id: api_changes
