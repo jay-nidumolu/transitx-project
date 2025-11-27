@@ -1,30 +1,30 @@
 import os
+import pandas as pd
+from google.cloud import storage
+from datetime import datetime
 import requests
 from dotenv import load_dotenv
-from azure.storage.blob import BlobServiceClient
-import pandas as pd
-from datetime import datetime
+
 
 # ----- Load environment variables ----- #
 load_dotenv()
 
 
-# ----- Azure Connection ----- #
-CON_STR = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-RAW_CONTAINER= os.getenv("DATA_CONTAINER_RAW", "raw")
+# ----- GCP Connection ----- #
+GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
 
-svc = BlobServiceClient.from_connection_string(CON_STR)
-container = svc.get_container_client(RAW_CONTAINER)
+storage_client = storage.Client()
+bucket = storage_client.bucket(GCP_BUCKET)
 
 
-# ----- Upload to Azure Blob ----- #
+# ----- Upload to Blob ----- #
 def upload_to_blob(local_path: str, blob_name: str):
 
-    """Upload local file to Azure Blob Storage"""
-
-    with open(local_path, "rb") as f:
-        container.upload_blob(name=blob_name, data=f, overwrite=True)
-    print(f"Uploaded {blob_name} -> container '{RAW_CONTAINER}'")
+    """Upload local file to Blob Storage"""
+    
+    blob = bucket.blob(blob_name)
+    blob.upload_from_filename(local_path)
+    print(f"Uploaded {blob_name} -> container '{GCP_BUCKET}'")
 
 
 # ----- Download the Data files from URL/API ----- #
@@ -79,7 +79,7 @@ def fetch_transit_data(year: int):
     else:
         csv_path = raw_path
 
-    upload_to_blob(csv_path, f"ttc_bus_delay_{year}.csv")
+    upload_to_blob(csv_path, f"raw/ttc_bus_delay_{year}.csv")
     print(f"Completed processing for {year}")
 
 
@@ -97,7 +97,7 @@ def fetch_weather_data(year: int):
     )
     local_path = f"data/weather/weather_{year}.csv"
     download_file(url, local_path)
-    upload_to_blob(local_path, f"weather_{year}.csv")
+    upload_to_blob(local_path, f"raw/weather_{year}.csv")
 
 
 # ----- Entry Point ----- #

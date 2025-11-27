@@ -5,6 +5,11 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 from xgboost import XGBClassifier
 import pickle
 import mlflow
+import sys
+
+sys.path.append(os.path.abspath(os.getcwd()))
+os.environ["PYTHONPATH"] = os.path.abspath(os.getcwd())
+
 from src.utils.model_utils import load_data, upload_to_blob, mlflow_starter
 
 # ---- Hyperparameter Tuning ----- #

@@ -1,24 +1,24 @@
 import os
 import pandas as pd
-from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
 from io import StringIO
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# ----- Azure Connections ----- #
-CONN_STR = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-RAW = os.getenv("DATA_CONTAINER_RAW", "raw")
-PROC = os.getenv("DATA_CONTAINER_PROCESSED", "processed")
-svc = BlobServiceClient.from_connection_string(CONN_STR)
-raw_container = svc.get_container_client(RAW)
-proc_container = svc.get_container_client(PROC)
+
+# -------- GCP Connections -------- #
+GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
+
+storage_client = storage.Client()
+bucket = storage_client.bucket(GCP_BUCKET)
 
 
 # ----- Downloading the File from the Blob ----- #
 def read_blob_csv(name):
-    blob = raw_container.download_blob(name)
-    content = blob.readall().decode("utf-8")
+
+    blob = bucket.blob(f"raw/{name}")
+    content = blob.download_as_text()
     lines = content.splitlines()
 
     if any("latitude" in line.lower() for line in lines[:10]) and any(
@@ -42,8 +42,8 @@ def upload_df_blob(df, name):
     os.makedirs("data/processed", exist_ok=True)
     local_path = "data/processed/transit_processed.csv"
     df.to_csv(local_path, index=False)
-    with open(local_path, "rb") as f:
-        proc_container.upload_blob(name=name, data= f, overwrite=True)
+    blob = bucket.blob(f"processed/{name}")
+    blob.upload_from_filename(local_path)
     print("Uploaded the processed file to the blob")
 
 # ----- Transforming the dataframes ------ #

@@ -5,7 +5,14 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from xgboost import XGBRegressor
 import pickle
 import mlflow
+import sys
+
+sys.path.append(os.path.abspath(os.getcwd()))
+os.environ["PYTHONPATH"] = os.path.abspath(os.getcwd())
+
 from src.utils.model_utils import load_data, upload_to_blob, mlflow_starter
+
+
 
 # ---- Hyperparameter Tuning ----- #
 def tune_model(X_train, y_train):

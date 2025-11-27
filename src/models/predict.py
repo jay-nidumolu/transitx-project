@@ -2,7 +2,7 @@ import os
 import pickle
 from dotenv import load_dotenv
 import pandas as pd
-from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
 
 load_dotenv()
 
@@ -26,14 +26,16 @@ def generate_predictions(df:pd.DataFrame, model, model_name:str):
 
 # ----- Upload to Blob ----- #
 def upload_to_blob(path:str, blob_name:str):
-    conn_str = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-    svc = BlobServiceClient.from_connection_string(conn_str)
-    container = svc.get_container_client(os.getenv("PREDICTIONS", "predictions"))
+    GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
 
-    with open(path, "rb") as f:
-        container.upload_blob(name=blob_name, data=f, overwrite=True)
-        print(f"Uploaded predictions -> Azure Blob: {container}/{blob_name}")
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(GCP_BUCKET)
+    blob = bucket.blob(f"predictions/{blob_name}")
 
+    blob.upload_from_filename(path)
+    print(f"Uploaded predictions -> Google Cloud Storage: {GCP_BUCKET}/predictions/{blob_name}")
+          
+          
 if __name__=="__main__":
     print("Starting Batch Predictions......")
 

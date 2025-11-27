@@ -6,7 +6,7 @@ Automates the full data-to-model workflow for TransitX:
 """
 
 from airflow import DAG
-from airflow.operators.bash import BashOperator
+from airflow.providers.standard.operators.bash import BashOperator
 from airflow.utils.dates import days_ago
 from datetime import datetime, timedelta
 
@@ -55,7 +55,7 @@ with DAG(
 
     dvc_push = BashOperator(
         task_id="push_to_dvc",
-        bash_command="cd /opt/transitx-project && dvc push"
+        bash_command="cd /opt/transitx-project && dvc push -r gcp_remote"
     )
 
 

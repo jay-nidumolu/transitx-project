@@ -20,4 +20,6 @@ openpyxl
 subprocess32; python_version < "3.3"
 
 dvc
-dvc[azure] 
+dvc-gs
+
+apache-airflow-providers-standard

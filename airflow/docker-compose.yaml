@@ -19,6 +19,7 @@ services:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/gcp-service-account.json
     entrypoint: >
       /bin/bash -c "airflow db init &&
                     airflow users create --username airflow --password airflow --firstname admin --lastname user --role Admin --email admin@example.com"
@@ -29,7 +30,7 @@ services:
       - ./plugins:/opt/airflow/plugins
       - ../src:/opt/airflow/src   
       - ./requirements.txt:/opt/airflow/requirements.txt
-
+      - /Users/jaynidumolu/transitx-ci-key.json:/opt/airflow/gcp-service-account.json
   airflow-webserver:
     image: apache/airflow:2.9.2
     restart: always
@@ -42,8 +43,9 @@ services:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/gcp-service-account.json
     ports:
-      - "8080:8080"
+      - "8000:8080"
     command: webserver
     volumes:
       - /Users/jaynidumolu/Documents/transitx-project:/opt/transitx-project
@@ -52,6 +54,8 @@ services:
       - ./plugins:/opt/airflow/plugins
       - ../src:/opt/airflow/src           
       - ./requirements.txt:/opt/airflow/requirements.txt
+      - /Users/jaynidumolu/transitx-ci-key.json:/opt/airflow/gcp-service-account.json
+      
 
   airflow-scheduler:
     image: apache/airflow:2.9.2
@@ -66,6 +70,7 @@ services:
       - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt
       - PYTHONPATH=/opt/airflow:/opt/airflow/src
+      - GOOGLE_APPLICATION_CREDENTIALS=/opt/airflow/gcp-service-account.json
     command: scheduler
     volumes:
       - /Users/jaynidumolu/Documents/transitx-project:/opt/transitx-project
@@ -74,6 +79,7 @@ services:
       - ./plugins:/opt/airflow/plugins
       - ../src:/opt/airflow/src         
       - ./requirements.txt:/opt/airflow/requirements.txt
+      - /Users/jaynidumolu/transitx-ci-key.json:/opt/airflow/gcp-service-account.json
 
 volumes:
   postgres-db-volume:

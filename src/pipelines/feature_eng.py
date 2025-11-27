@@ -1,42 +1,44 @@
 import os
 import pandas as pd
 import pickle
-from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
 from dotenv import load_dotenv
 from sklearn.preprocessing import LabelEncoder
+from io import StringIO
 
 
 load_dotenv()
 
-# ----- Azure Setup ----- #
-CONN_STR = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-PROC_CONTAINER = os.getenv("DATA_CONTAINER_PROCESSED", "processed")
-MODEL_CONTAINER = os.getenv("DATA_CONTAINER_MODEL_INPUT", "model-input")
+# ----- GCP Connection ------ #
+GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
+storage_client = storage.Client()
+bucket = storage_client.bucket(GCP_BUCKET)
 
-svc = BlobServiceClient.from_connection_string(CONN_STR)
-proc_cont = svc.get_container_client(PROC_CONTAINER)
-model_cont = svc.get_container_client(MODEL_CONTAINER)
 
 # ----- Read the Processed Data ----- #
 def read_proc_blob(blob_name:str):
-    blob = proc_cont.download_blob(blob_name)
-
-    df = pd.read_csv(blob)
+    blob_str = bucket.blob(f"processed/{blob_name}").download_as_text()
+    df = pd.read_csv(StringIO(blob_str))
     print(f"Loaded the processed data from {blob_name}, shape = {df.shape}")
 
     return df
 
-# ----- Upload the Data After Feature Eng. ----- #
-def upload_to_model_blob(blob_name:str, local_path:str):
-    with open(local_path, "rb") as f:
-        model_cont.upload_blob(name=blob_name, data=f, overwrite=True)
-    print(f"Uploaded {blob_name} to container {MODEL_CONTAINER}")
+# ----- Upload the Data  and Encoders After Feature Eng. ----- #
+def upload_to_blob(blob_name:str, local_path:str):
+    blob = bucket.blob(f"{blob_name}")
+    blob.upload_from_filename(local_path)
+
+    print(f"Uploaded {blob_name} to container {GCP_BUCKET}")
 
 # ----- Saving the encoders for inference ------ #
 def save_encoders(encoders:dict):
     os.makedirs("models", exist_ok=True)
-    with open("models/encoders.pkl", "wb") as f:
+
+    path = "models/encoders.pkl"
+    with open(path, "wb") as f:
         pickle.dump(encoders, f)
+    upload_to_blob(path, path)
+    
 
 
 # ------ Feature Engineering ------ #
@@ -123,7 +125,8 @@ if __name__ == "__main__":
     df_feat_eng.to_csv(local_path, index=False)
     print(f"Saved {local_path} locally.")
 
-    upload_to_model_blob("transit_features.csv", local_path)
+    upload_to_blob("model_input/transit_features.csv", local_path)
+    
 
     print("Feature Engineering Completed Successfully :) ")
 

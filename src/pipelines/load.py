@@ -2,52 +2,55 @@ import os
 import pandas as pd 
 from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
-from azure.storage.blob import BlobServiceClient
-from src.utils.firewall_helper import ensure_firewall_access
+from google.cloud import storage
+from google.cloud import bigquery
 from io import StringIO
 
 
 load_dotenv()
 
-def connect_sql():
-    conn_str = os.getenv("AZ_SQL_CONNECTION_STRING")
-    if not conn_str:
-        raise ValueError("AZ_SQL_CONNECTION_STRING is missing in .env")
-    engine= create_engine(conn_str)
-    print("Connected to Azure SQL Database.")
-    return engine
+# ---------- GCP Environment ---------- #
+GCP_BUCKET_NAME = os.getenv("GCP_BUCKET_NAME")
+BQ_DATASET = os.getenv("BQ_DATASET", "transitx_dataset")
+BQ_TABLE = os.getenv("BQ_TABLE", "processed_data")
+
+storage_client = storage.Client()
+bq_client = bigquery.Client()
+bucket = storage_client.bucket(GCP_BUCKET_NAME)
 
 
 # -------- Download from Blob -------- #
-def download_from_blob(blob_name:str, container_name="processed"):
+def download_from_blob(blob_name:str):
 
-    conn_str = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-    if not conn_str:
-        raise ValueError("AZ_STORAGE_CONNECTION_STRING missing in .env")
-    
-    svc = BlobServiceClient.from_connection_string(conn_str)
-    container = svc.get_container_client(container_name)
-    blob = container.download_blob(blob_name)
-
-    csv_str = blob.readall().decode("utf-8")
-
+    blob = bucket.blob(f"processed/{blob_name}")
+    csv_str = blob.download_as_text()
     return pd.read_csv(StringIO(csv_str))
 
 
 
 # ----- Load the CSV file from Blob to Azure SQL ------ #
 def load_to_sql(blob_name:str, table_name:str):
+    
+    df = download_from_blob(blob_name)
 
-    ensure_firewall_access()
-    df= download_from_blob(blob_name)
+    # Clean column names for BigQuery compatibility
+    df.columns = (
+        df.columns.str.strip()
+                .str.lower()
+                .str.replace(" ", "_")
+                .str.replace("(", "")
+                .str.replace(")", "")
+                .str.replace("°", "")
+                .str.replace("/", "_")
+                .str.replace("-", "_")
+    )
 
-    engine = connect_sql()
-    print(f"Loading {len(df)} rows into table {table_name}")
-
-    with engine.begin() as conn:
-        df.to_sql(table_name, con=conn, if_exists="replace", index=False, chunksize=5000)
-
-    print("Data successfully loaded to Azure SQL.")
+    table_id = f"{bq_client.project}.{BQ_DATASET}.{table_name}"
+    job = bq_client.load_table_from_dataframe(df, table_id, 
+                                              job_config=bigquery.LoadJobConfig(write_disposition="WRITE_TRUNCATE"))
+    
+    job.result()
+    print("Data successfully loaded to BigQuery.")
 
 
 

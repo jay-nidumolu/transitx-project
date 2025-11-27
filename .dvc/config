@@ -1,5 +1,4 @@
 [core]
-    remote = azure_blob
-['remote "azure_blob"']
-    url = azure://transitxcontainer/data
-    connection_string = ""
+    remote = gcp_remote
+['remote "gcp_remote"']
+    url = gs://transitx-dvc

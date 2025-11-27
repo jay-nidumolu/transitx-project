@@ -1,10 +1,33 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
+from google.cloud import storage
+from dotenv import load_dotenv
+from functools import lru_cache
 import uvicorn, os
 import pandas as pd
 import pickle
 import requests
+
+load_dotenv()
+
+GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
+print("CREDENTIAL PATH:", os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+storage_client = storage.Client()
+bucket = storage_client.bucket(GCP_BUCKET)
+
+# --------- loading the models -------- #
+@lru_cache(maxsize=2)
+def load_from_gcs(blob_path:str):
+    blob = bucket.blob(blob_path)
+
+    if not blob.exists():
+        raise RuntimeError(f"[ERROR] GCS model not found: {blob_path}")
+
+    model_bytes = blob.download_as_bytes()
+    model = pickle.loads(model_bytes)
+
+    return model
 
 
 # ------ Initializing the FASTAPI ------- #
@@ -114,12 +137,6 @@ class TransitInput(BaseModel):
         return value
 
 
-# ----- Load the models ----- #
-def load_pkl_file(file_path):
-    with open(file_path, "rb") as f:
-        model = pickle.load(f)
-    return model
-
 # ---- Extract date and time features ---- #
 def time_features(date_str:str, time_str:str):
     dt = datetime.fromisoformat(f"{date_str}T{time_str}")
@@ -215,7 +232,7 @@ def encode_cat_input(df: pd.DataFrame, encoders: dict):
     return df_copy
 
 #------ Prepare the data for predictions ------- #
-def prepare_data(input_data:TransitInput):
+def prepare_data(input_data:TransitInput, encoders:dict):
     try:
         parsed_date = datetime.fromisoformat(input_data.date)
         date_str = parsed_date.strftime("%Y-%m-%d")
@@ -248,11 +265,8 @@ def prepare_data(input_data:TransitInput):
         "rain_intensity":rain_intensity,
         
     }])
-
-    encoder_file_path = "models/encoders.pkl"
-    encoder = load_pkl_file(encoder_file_path)
     
-    encoded_df = encode_cat_input(df, encoder)
+    encoded_df = encode_cat_input(df, encoders)
 
     return encoded_df, date_str
 
@@ -279,17 +293,18 @@ def generate_summary(temp_bin_name, rain_intensity_name, delay_minutes, is_delay
 @app.post("/predict")
 def predict(input_data:TransitInput):
 
-    input_df, date_str = prepare_data(input_data)
+    encoder = load_from_gcs("models/encoders.pkl")
+    input_df, date_str = prepare_data(input_data, encoder)
 
     reg_model_path = "models/xgb_regressor.pkl"
 
-    reg_model = load_pkl_file(reg_model_path)
+    reg_model = load_from_gcs(reg_model_path)
 
     # Make predictions
     delay_minutes = round(float(reg_model.predict(input_df)[0]))
     is_delayed = delay_minutes > 3
 
-    encoder = load_pkl_file("models/encoders.pkl")
+
     temp_bin_encoder = encoder.get("temp_bin")
     rain_encoder = encoder.get("rain_intensity")
 
@@ -325,5 +340,10 @@ def predict(input_data:TransitInput):
     return response
 
 if __name__ =="__main__":
-    uvicorn.run("deployment.app:app", host="127.0.0.1", port=8000, reload=True)
+    uvicorn.run(
+        "deployment.app:app",
+        host="0.0.0.0",
+        port=int(os.environ.get("PORT", 8080)),
+        reload=True
+    )
 

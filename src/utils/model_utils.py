@@ -2,37 +2,37 @@ import os
 from dotenv import load_dotenv
 import pandas as pd
 import mlflow
-from azure.storage.blob import BlobServiceClient
+from google.cloud import storage
 from io import StringIO
 
 load_dotenv()
 
-conn_str = os.getenv("AZ_STORAGE_CONNECTION_STRING")
-svc = BlobServiceClient.from_connection_string(conn_str)
+GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
+
+storage_client = storage.Client()
+bucket = storage_client.bucket(GCP_BUCKET)
 
 # -- Loading The Data -- #
 def load_data():
-    blob_path = "transit_features.csv"
-    container = svc.get_container_client(os.getenv("DATA_CONTAINER_MODEL_INPUT", "model-input"))
+    blob_path = "model_input/transit_features.csv"
     try:
-        blob_client = container.get_blob_client(blob_path)
-        blob_data = blob_client.download_blob().readall()
+        blob = bucket.blob(blob_path)
+        blob_data = blob.download_as_text()
 
         # Read CSV from blob content
-        df = pd.read_csv(StringIO(blob_data.decode("utf-8")))
-        print(f"[INFO] Loaded data from Azure Blob: model-input/{blob_path}")
+        df = pd.read_csv(StringIO(blob_data))
+        print(f"[INFO] Loaded data from Google Cloud Storage: {GCP_BUCKET}/{blob_path}")
         return df
 
     except Exception as e:
-        raise FileNotFoundError(f"Could not load {blob_path} from Azure Blob: {e}")
+        raise FileNotFoundError(f"Could not load {blob_path} from Google Cloud Storage: {e}")
 
-# -- Upload model to Azure Blob -- #
+# -- Upload model to Google Cloud Storage -- #
 def upload_to_blob(local_path, blob_name):
-    container = svc.get_container_client(os.getenv("MODEL_CONTAINER", "models"))
+    blob = bucket.blob(f"models/{blob_name}")
 
-    with open(local_path, "rb") as f:
-        container.upload_blob(name=blob_name, data=f, overwrite=True)
-        print(f"Uploaded model -> Azure Blob: models/{blob_name}")
+    blob.upload_from_filename(local_path)
+    print(f"Uploaded model -> Google Cloud Storage: models/{blob_name}")
 
 # -- MLFLOW Helper -- #
 def mlflow_starter(experiment_name):
