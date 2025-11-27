@@ -35,6 +35,12 @@ jobs:
         run: |
           echo "Linting and smoke test..."
           python -m compileall src/
+      
+      - name: Set up GCP authentication
+        run: |
+          echo "${{ secrets.GCP_SA_KEY }}" > gcp-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=$PWD/gcp-key.json
+
 
       - name: DVC Pull Data
         run: |

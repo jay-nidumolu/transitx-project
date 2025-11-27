@@ -2,3 +2,4 @@
     remote = gcp_remote
 ['remote "gcp_remote"']
     url = gs://transitx-dvc
+    credentialpath = ../gcp-key.json
