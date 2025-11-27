@@ -58,7 +58,7 @@ jobs:
         if: steps.api_changes.outputs.changed != ''
         run: |
           IMAGE_NAME=gcr.io/$GCP_PROJECT_ID/transitx:latest
-          docker build -t $IMAGE_NAME -f deployment/Dockerfile .
+          docker build -t $IMAGE_NAME -f ./Dockerfile .
 
       - name: Push image to GCR
         if: steps.api_changes.outputs.changed != ''
