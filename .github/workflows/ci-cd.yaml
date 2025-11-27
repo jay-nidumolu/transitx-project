@@ -47,12 +47,7 @@ jobs:
         run: |
           dvc remote modify gcp_remote credentialpath sa-key.json
           dvc pull --force
-
-      - name: Check if API-related files changed
-        id: api_changes
-        run: |
-          echo "changed=$(git diff ${{ github.event.before }} ${{ github.sha }} | grep -E 'deployment/Dockerfile|src/|requirements.txt' || true)" >> $GITHUB_OUTPUT
-
+          
       - name: Build Docker image
         if: steps.api_changes.outputs.changed != ''
         run: |
