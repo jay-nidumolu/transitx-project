@@ -61,14 +61,10 @@ jobs:
           dvc pull --force
 
 
-      - name: Build Docker image
+      - name: Build and Push Docker image
         run: |
-          IMAGE_NAME=gcr.io/$GCP_PROJECT_ID/transitx:latest
+          IMAGE_NAME=us-central1-docker.pkg.dev/$GCP_PROJECT_ID/transitx/transitx:latest
           docker build -t $IMAGE_NAME -f ./Dockerfile .
-
-      - name: Push Docker image to GCR
-        run: |
-          IMAGE_NAME=gcr.io/$GCP_PROJECT_ID/transitx:latest
           docker push $IMAGE_NAME
 
       - name: Deploy to Cloud Run
