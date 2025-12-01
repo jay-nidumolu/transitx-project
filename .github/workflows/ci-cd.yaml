@@ -60,11 +60,19 @@ jobs:
           dvc remote modify gcp_remote credentialpath sa-key.json
           dvc pull --force
 
-
-      - name: Build and Push Docker image
+      - name: Build Docker image
         run: |
           IMAGE_NAME=us-central1-docker.pkg.dev/$GCP_PROJECT_ID/transitx/transitx:latest
           docker build -t $IMAGE_NAME -f ./Dockerfile .
+
+      - name: Authenticate Docker with GCP
+        run: |
+          gcloud auth activate-service-account --key-file=sa-key.json
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      - name: Push Docker image to Artifact Registry
+        run: |
+          IMAGE_NAME=us-central1-docker.pkg.dev/$GCP_PROJECT_ID/transitx/transitx:latest
           docker push $IMAGE_NAME
 
       - name: Deploy to Cloud Run
