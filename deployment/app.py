@@ -11,8 +11,7 @@ import requests
 
 load_dotenv()
 
-GCP_BUCKET = os.getenv("GCP_BUCKET_NAME")
-print("CREDENTIAL PATH:", os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+GCP_BUCKET = "transitx-dvc-storage"
 storage_client = storage.Client()
 bucket = storage_client.bucket(GCP_BUCKET)
 
@@ -343,7 +342,7 @@ if __name__ =="__main__":
     uvicorn.run(
         "deployment.app:app",
         host="0.0.0.0",
-        port=int(os.environ.get("PORT", 8080)),
+        port=int(8080),
         reload=True
     )
 
