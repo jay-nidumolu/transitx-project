@@ -379,6 +379,8 @@ Workflow File:
 6. Cloud Run is updated with the new revision
 
 This ensures a **fully automated, zero-touch deployment pipeline** for production inference.
+
+
 ---
 
 ## Data Sources
