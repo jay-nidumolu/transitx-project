@@ -1,11 +1,11 @@
 # TransitX — Transit Delay Prediction (Azure End-to-End, MLOps Project)
 **TransitX** is a full end-to-end MLOps system that predicts TTC bus delay duration and delay likelihood using:
-- Historical TTC delay data
-- Weather archive & forecast data
-- Route-level metadata
+- Multi-year TTC delay data
+- Weather history & weather forecasts
+- Route & stop metadata
 - Inference-time feature engineering
 
-This project demonstrates modern **data engineering, machine learning, cloud deployment, and CI/CD automation.**
+The project demonstrates modern **data engineering, cloud deployment, CI/CD automation, and real-time ML inference** following industry-grade standards.
 
 ---
 
@@ -14,61 +14,63 @@ This project demonstrates modern **data engineering, machine learning, cloud dep
 ### Interactive Streamlit Dashboard
 [Live Streamlit Dashboard](https://transitx-project-jknidumolu.streamlit.app)
 
-### Live Real-Time API (FastAPI via Railway)
-`POST https://transitx-project-production.up.railway.app/predict`
+### Live Real-Time API (Google Cloud Run)
+```bash
+POST https://transitx-api-874451770694.us-central1.run.app/predict
+```
 
 ---
 
 ## Project Highlights
-- End-to-end ETL → Feature Engineering → Model Training → Deployment
-- Real-time inference API (FastAPI + Docker + Railway)
-- Interactive analytics dashboard (Streamlit)
-- Airflow DAG for full orchestration
-- DVC for dataset/model versioning
-- CI/CD pipeline with GitHub Actions
-- Cloud deployment originally on **Azure Container Apps**, now hosted on Railway
-- Designed as a real-world MLOps showcase project
+- End-to-end ETL → Feature Engineering → XGBoost Model Training → Deployment
+- Real-time inference API served through **FastAPI + Docker + Google Cloud Run**
+- Interactive analytics dashboard built using **Streamlit**
+- Full orchestration through an **Airflow DAG**
+- Dataset and model versioning managed by **DVC**
+- Automated image build and deployment using **GitHub Actions → GCP Cloud Run**
+- Cloud migration history: **Azure → Railway → Google Cloud Run**
 
 ---
 
 ## Project Goal
-Build a production-grade ML system that:
-- Extracts & transforms multi-year transit + weather datasets
-- Generates ML-ready engineered features
-- Trains XGBoost models
-- Supports batch & real-time streaming inference
-- Serves predictions via containerized FastAPI
-- Deploys on Cloud (Azure → Railway → GCP planned)
-- Maintains reproducibility via DVC + CI/CD
+The goal of TransitX is to build a robust and production-ready ML system that:
+- Extracts TTC delay + weather datasets
+- Generates ML-ready features
+- Trains XGBoost classifier & regression models
+- Supports batch inference and real-time inference
+- Provides stable public cloud deployment
+- Ensures full reproducibility through DVC & CI/CD
+- Demonstrates a real-world MLOps architecture
 
 ---
 
 ## Tech Stack
 ### Data Engineering
 - Python
-- Azure Blob Storage
+- Azure Blob Storage (initial staging)
+- Google Cloud Storage (current storage)
 - Apache Airflow
 
 ### ML / MLOps
 - XGBoost, scikit-learn
-- DVC (model & data versioning)
+- DVC
 - MLflow (local experiment tracking)
-- Inference-time feature engineering
 
 ### Deployment
 - FastAPI
 - Docker
 - DockerHub
-- Azure Container Apps (Initially)
-- Railway (now)
+- Azure Container Apps (initial deployment)
+- Railway (temporary deployment)
+- Google Cloud Run (current production)
 
-### Dashboard
+### Visualization
 - Streamlit
 - Plotly
 
 ### CI/CD
 - GitHub Actions
-- Automated Docker builds → DockerHub push
+- Automated Docker builds → Artifact Registry → Cloud Run deploy
 
 
 ---
@@ -77,7 +79,8 @@ Build a production-grade ML system that:
 ```bash
 transitx-project/
 ├── airflow/                      
-│   ├── dags/                    
+│   ├── dags/  
+│   ├── requirements.txt.      #for the airflow dags                    
 │   └── docker-compose.yaml      
 ├── data/                         # mostly gitignored
 │   ├── raw/
@@ -90,18 +93,15 @@ transitx-project/
 │   ├── data/transit_processed.csv
 │   ├── requirements.txt        # for dashboard
 │   ├──.streamlit/
-│   │   ├── 1_Transit_Analytics.py
-│   │   └── 2_Live_Inference.py
 │   └── pages/
 │       ├── 1_Transit_Analytics.py
 │       └── 2_Live_Inference.py
 ├── deployment/
-│   ├── app.py                    # FastAPI streaming inference API
-│   ├── Dockerfile
+│   └── app.py                    # FastAPI streaming inference API
 ├── docs/                         # All project documentation
 │   ├── architecture_overview.md
 │   ├── etl_pipeline.md
-│   ├── deployment_aca.md
+│   ├── deployment_cloud.md
 │   └── cicd_pipeline.md
 ├── models/                       # Trained models (DVC-managed)
 ├── notebooks/
@@ -122,6 +122,7 @@ transitx-project/
 │       ├── model_utils.py
 │       └── firewall_helper.py
 ├── main.py                       # Manual ETL orchestration
+├── Dockerfile
 ├── requirements.txt              # Project dependencies
 └── .github/workflows/
     └── ci-cd.yaml
@@ -136,41 +137,41 @@ See full details:
 ```mermaid
 flowchart TB
     A["TTC Delay Data + Weather API"] --> B["ETL: extract.py"]
-    B --> C["Azure Blob Storage (raw)"]
+    B --> C["Cloud Storage (raw)"]
     C --> D["transform.py"]
-    D --> E["Azure Blob (processed)"]
+    D --> E["Cloud Storage (processed)"]
     E --> F["feature_eng.py"]
-    F --> G["Azure Blob (model-input)"]
+    F --> G["Cloud Storage (model-input)"]
     G --> H["Model Training (XGBoost)"]
     H --> I["DVC-Tracked Models & Encoders"]
     I --> J["FastAPI (app.py)"]
-    J --> K["DockerHub Image"]
-    K --> L["Railway Deployment"]
-    L --> M["Public HTTPS Endpoint (/docs, /predict)"]
+    J --> K["Docker Image"]
+    K --> L["Google Artifact Registry"]
+    L --> M["Google Cloud Run Deployment"]
+    M --> N["Public HTTPS Endpoint (/predict)"]
 ```
 
 ---
 
 ### Pipeline  
-***ETL → Feature Engineering → Model Training → Deployment***
+***ETL → Feature Engineering → Model Training → Batch + Streaming Inference → Cloud Deployment***
 
-> **End-to-End Workflow**  
->  
-> Local FastAPI (`app.py`)  
-> ↓  
-> Local Streaming Inference Testing  
-> ↓  
-> Local Batch Inference (`predict.py`)  
-> ↓  
-> Docker Image Built & Tested Locally  
-> ↓  
-> DockerHub Push (`jaynid00/transitx-api`)  
-> ↓  
-> **(Previously) Azure Container Apps Deployment**  
-> ↓  
-> **(Current) Railway Deployment** — Builds and deploys automatically from GitHub  
-> ↓  
-> **Public HTTPS Endpoint (`/predict`)**
+**Progression during development:**  
+```sql 
+Local FastAPI  
+        ↓  
+Local Batch Inference  
+        ↓  
+Docker Build  
+        ↓  
+DockerHub Push  
+        ↓  
+Azure Container Apps Deployment (initial)  
+        ↓  
+Railway Deployment (intermediate)  
+        ↓  
+Google Cloud Run Deployment (current & final)
+```
 
 ---
 
@@ -182,10 +183,10 @@ Detailed documentation:
 ### ETL Stages
 | Stage         | Script           | Output                     |
 |---------------|------------------|-----------------------------|
-| Extract       | `extract.py`     | Azure Blob → `raw`          |
-| Transform     | `transform.py`   | Azure Blob → `processed`    |
-| Feature Eng.  | `feature_eng.py` | Azure Blob → `model-input`  |
-| Load          | `load.py`        | Azure SQL Table             |
+| Extract       | `extract.py`     | `gs://transitx-dvc-storage/raw`         |
+| Transform     | `transform.py`   | `gs://transitx-dvc-storage/processed`    |
+| Feature Eng.  | `feature_eng.py` | `gs://transitx-dvc-storage/model-input`  |
+| Load          | `load.py`        | BigQuery             |
 
 Orchestration:
 - Initially via `main.py`
@@ -200,11 +201,20 @@ Models stored in `models/` (via DVC):
 - `xgb_classifier.pkl`
 - `encoders.pkl`
 
-Training scripts in `src/models/`
-- `train_regressor.py`
-- `train_classifier.py`
+Training scripts reside in 
+```bash
+src/models/
+    ├── train_classifier.py
+    ├── train_regressor.py
+    └── predict.py
+```
 
 MLflow logs metrics locally in `mlruns/`.
+
+### Model Registry Behavior
+Model versions are automatically versioned and synchronized via:
+- `dvc push` → pushes artifacts to Google Cloud Storage
+- `dvc pull` → used during CI/CD and Cloud Run deployment
 
 ---
 
@@ -215,9 +225,9 @@ Implemented in:
 - `deployment/app.py`
 
 Provides:
-- Predicted delay in minutes
-- Delay classification
-- Weather impact explanation
+- Predicted delay (minutes)
+- Delay likelihood classification
+- Weather-impact explanation
 - Works for both **future** and **historical** timestamps
 
 ### 2. Batch Inference
@@ -229,7 +239,7 @@ Input:
 
 Output:
 - `data/predictions/transit_predictions.csv`  
-- Can automatically upload results to Azure Blob (optional)
+- Can automatically upload results to Google Cloud Storage
 
 ---
 
@@ -239,7 +249,6 @@ Output:
 
 [Live Streamlit Dashboard](https://transitx-project-jknidumolu.streamlit.app)
 
-**Pages Include:**
 
 ### 1. Transit Analytics (2023–2024)
 
@@ -249,25 +258,23 @@ Interactive filters for:
 - Top 30 routes
 - Delay range
 - Weekend toggle
-- Rain / No Rain
+- Rain filter
 
-**Visualizations:**
+Visualizations:
 - Top 10 delayed routes
 - Daily delay trend
-- Temperature vs delay (rain intensity)
+- Temperature vs. delay (rain intensity)
 
-### 2. Live Prediction (Connected to FastAPI API)
+### 2. Live Prediction (API-Connected)
 
 User inputs:
-- Date
-- Time
-- Route
-- Location
+- Date, time
+- Route, location
 - Incident type
 - Gap between buses
 
 Outputs:
-- Predicted delay
+- Delay prediction
 - Classification
 - Weather-impact explanation
 
@@ -276,15 +283,15 @@ Outputs:
 
 ## Dockerization
 
-Dockerfile location: `deployment/Dockerfile`
+Dockerfile location: `./Dockerfile`
 
-**Build the image**
+**Build**
 ```bash
 docker build -t transitx-api .
 ```
 **Run locally**
 ```bash
-docker run -p 8000:8000 transitx-api
+docker run -p 8080:8000 transitx-api
 ```
 **Push to DockerHub**
 ```bash
@@ -296,63 +303,82 @@ docker push jaynid00/transitx-api:latest
 ## Deployment History
 
 Detailed Deployment Documentation:
+- `docs/deployment_cloud.md`
 
-- `docs/deployment_aca.md`
+### Initial Deployment — Azure Container Apps (Historic)
 
-### Azure Container Apps (Original Deployment)
+The project was first deployed to **Azure Container Apps (ACA)** as part of the early MLOps workflow.
 
-The system was first deployed to Azure Container Apps as part of the full MLOps workflow:
-1. Build & push Docker image
-2. Deploy container to ACA
-3. Inject environment variables
-4. Expose public HTTPS endpoint
+Historic steps included:
+- Building & pushing the Docker image
+- Deploying the container to ACA
+- Setting environment variables
+- Exposing a public HTTPS endpoint
 
-Azure endpoint: *(no longer active due to subscription expiry)*
+Historic ACA endpoint *(inactive due to subscription expiry)*:
 ```bash
 https://transitx-api-app.jollystone-d7b68f23.canadacentral.azurecontainerapps.io/docs
 ```
 
-### Current Live Deployment — Railway
+### Temporary Deployment — Railway (Historic)
 
-A lightweight public API deployment is now hosted on Railway:
+After Azure access ended, a lightweight deployment was hosted on **Railway**.
 
-**Live API Endpoint**
+Temporary API endpoint:
 ```arduino
 https://transitx-project-production.up.railway.app/predict
 ```
 
-Railway Deployment Features:
+Railway provided:
+- Auto-builds from GitHub
 - Free-tier hosting
-- Auto-build on every GitHub push
-- Sleep/scale-to-zero (cost-efficient)
-- Ideal for public demos and testing
+- Scale-to-zero
 
-### Future Deployment (Optional)
-A production-ready deployment on Google Cloud Run is planned, leveraging:
-- Always-free tier
-- Fully serverless autoscaling
-- Stable HTTPS endpoint.
+This deployment was phased out due to free-tier limitations.
 
-This README will be updated once Cloud Run deployment is complete.
+### Current Deployment — Google Cloud Run (Active)
+
+The system is now fully hosted on **Google Cloud Run**, with:
+- **Artifact Registry** for storing Docker images
+- **Google Cloud Storage (GCS)** for models + DVC artifacts
+- **Cloud Run** for serverless API hosting
+
+Features include:
+- Autoscaling
+- Per-request billing
+- Stable HTTPS endpoint
+- Seamless CI/CD-driven updates
+
+This represents the **final and active** production deployment.
 
 ---
 
-## CI/CD (GitHub Actions → DockerHub)
+## CI/CD (GitHub Actions → Artifact Registry → Cloud Run)
 
 Detailed steps:
 - `docs/cicd_pipeline.md`
 
 ### Pipeline Automates:
-- Python setup
-- Dependency install
-- DVC pull
-- Lint & smoke test
-- Docker build
-- DockerHub push
+- Dependency installation
+- GCP authentication using Workload Identity Federation
+- DVC artifact restoration (models + encoders) from GCS
+- Docker image build
+- Push to Artifact Registry
+- Automatic deployment to Cloud Run
 
-File:
+Workflow File:
 - `.github/workflows/ci-cd.yaml`
 
+### CI/CD Flow
+
+1. Code is pushed to main
+2. GitHub Actions validates the project
+3. DVC artifacts are downloaded from GCS
+4. Docker image is built
+5. Image is pushed to Artifact Registry
+6. Cloud Run is updated with the new revision
+
+This ensures a **fully automated, zero-touch deployment pipeline** for production inference.
 ---
 
 ## Data Sources
@@ -371,6 +397,6 @@ File:
 Built to demonstrate real-world skills in:
 - Data Engineering
 - Cloud-MLOps
-- API Deployment
 - CI/CD Automation
-- Azure Machine Learning Systems
+- Real-time Model Deployment
+- End-to-end ML Systems Design

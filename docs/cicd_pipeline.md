@@ -1,20 +1,20 @@
-# TransitX — CI/CD Pipeline (GitHub Actions → DockerHub)
+# TransitX — CI/CD Pipeline (GitHub Actions → Artifacts Registry → GCP Cloud Run)
 
-TransitX uses a GitHub Actions CI/CD pipeline to automatically:
+The TransitX GitHub Actions CI/CD pipeline automates the following steps:
 
-- Validate code quality  
-- Install dependencies  
-- Restore DVC-tracked model/data artifacts  
-- Build the FastAPI Docker image  
-- Push the image to DockerHub  
+- Validation of code quality and execution of basic tests
+- Installation of dependencies
+- Restoration of DVC-tracked model and data artifacts from Google Cloud Storage
+- Docker image build and push to Artifact Registry
+- Deployment of the FastAPI API to Cloud Run
 
-This ensures every commit to `main` produces a reproducible and deployable container image.
+This pipeline ensures that every commit to the `main` branch produces a **reproducible, deployable container image** and updates the live API automatically.
 
 ---
 
 ## 1. Trigger Conditions
 
-The workflow runs on:
+The workflow is triggered on:
 
 ```yaml
 on:
@@ -24,10 +24,11 @@ on:
     branches: [main]
 ```
 
-**Meaning:**  
+**Explanation:**  
 - Every push to `main`  
-- Every pull request targeting `main`  
-will execute the CI/CD pipeline.
+- Every pull request targeting `main` 
+
+These triggers execute the CI/CD pipeline automatically.
 
 ---
 
@@ -46,137 +47,156 @@ Environment variables for DockerHub authentication come from **GitHub Secrets**:
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-```
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
 
-These values are **secure** and **never exposed** in logs.
+```
+These secrets are **secure** and never exposed in logs.
 
 ---
 
 ## 3. Pipeline Steps
 
-Below is an explanation of each step in your workflow.
+Each step of the workflow is executed as follows:
 
-
-
-### ✔ Step 1 — Checkout Repository
+### Step 1 — Checkout Repository
 
 ```yaml
 uses: actions/checkout@v4
 ```
-Fetches your full GitHub repo so the workflow can access code, models, Dockerfile, etc.
+The repository is cloned to make code, models, and Dockerfiles available for the pipeline.
 
-### ✔ Step 2 — Set Up Python 3.12
+### Step 2 — Set Up Python 3.12
 
 ```yaml
 uses: actions/setup-python@v5
 with:
   python-version: "3.12"
   ```
-Ensures reproducible Python environment.
+A reproducible Python environment is created.
 
-### ✔ Step 3 — Install Dependencies
+### Step 3 — Install Dependencies
 
 ```yaml
+python -m pip install --upgrade pip
 pip install -r airflow/requirements.txt
-pip install dvc
+pip install dvc[gcs] google-cloud-storage
 ```
-Installs only what is needed for:
+Dependencies are installed for:
 - Code validation
-- DVC artifact pull
-- Any lightweight local checks
+- Pulling DVC artifacts from Google Cloud Storage
+- Running lightweight checks (training is not executed in CI)
 
-(Full training is not triggered in CI for performance reasons.)
 
-### ✔ Step 4 — Lint / Smoke Test
+### Step 4 — Lint / Smoke Test
 
 ```yaml
 python -m compileall src/
 ```
 A simple syntax-check step ensuring:
-- No invalid Python
-- No missing imports
-- No structural breaks
+- No invalid Python files
+- All imports are valid
+- No structural issues
 
-This reduces risk of breaking the Docker image with bad code.
+This reduces the risk of failing Docker builds.
 
-### ✔ Step 5 — DVC Pull
-
-```yaml
-dvc pull
-```
-This restores:
-- Tracked models (`xgb_classifier.pkl`, `xgb_regressor.pkl`)
-- Encoders
-- Any other DVC-managed artifacts
-
-This ensures the Docker image includes the correct model versions.
-
-### ✔ Step 6 — Build Docker Image
+### Step 5 — Authenticate to GCP
 
 ```yaml
-docker build -t $DOCKERHUB_USERNAME/transitx:latest -f deployment/Dockerfile .
+uses: google-github-actions/auth@v2
+with:
+  credentials_json: '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}'
 ```
-Builds a production-ready FastAPI image using your Dockerfile.
 
-This image contains:
+The workflow authenticates to Google Cloud using the service account key stored in GitHub Secrets.
+
+### Step 6 — Install gcloud SDK & Configure Docker
+
+```yaml
+uses: google-github-actions/setup-gcloud@v1
+with:
+  project_id: ${{ secrets.GCP_PROJECT_ID }}
+  install_components: "gke-gcloud-auth-plugin"
+
+run: gcloud auth configure-docker gcr.io --quiet
+```
+
+The Google Cloud SDK is installed, and Docker is configured to authenticate with **Artifact Registry**.
+
+### Step 7 — Restore DVC Artifacts
+
+```yaml
+echo '${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}' > sa-key.json
+dvc remote modify gcp_remote credentialpath sa-key.json
+dvc pull --force
+```
+Model and data artifacts tracked by DVC are restored from Google Cloud Storage.
+
+The service account key ensures proper authentication.
+
+### Step 8 — Build Docker Image
+
+```yaml
+IMAGE_NAME=us-central1-docker.pkg.dev/$GCP_PROJECT_ID/transitx/transitx:latest
+docker build -t $IMAGE_NAME -f ./Dockerfile .
+```
+
+A production-ready FastAPI Docker image is built containing:
 - `app.py` (API)
-- Models
-- Encoders
+- Models and Encoders
 - Dependencies
 - Feature engineering logic
 
-### ✔ Step 7 — Authenticate to DockerHub
+### Step 9 — Authenticate Docker with GCP
 
 ```yaml
-uses: docker/login-action@v3
-with:
-  username: ${{ secrets.DOCKERHUB_USERNAME }}
-  password: ${{ secrets.DOCKERHUB_TOKEN }}
+gcloud auth activate-service-account --key-file=sa-key.json
+gcloud auth configure-docker us-central1-docker.pkg.dev
 ```
 
-Secure login—required for pushing images.
+Docker is authenticated to push the image to Artifact Registry.
 
-### ✔ Step 8 — Push Image to DockerHub
+### Step 10 — Push Docker Image to Artifact Registry
 
 ```yaml
-docker push $DOCKERHUB_USERNAME/transitx:latest
+docker push $IMAGE_NAME
 ```
 
-This publishes your FastAPI model inference container.
+The image is uploaded to Google Artifact Registry, ready for deployment.
 
-Azure Container Apps later pulls from:
-```bash
-docker.io/<username>/transitx:latest
+### Step 11 — Deploy to Cloud Run
+
+```yaml
+gcloud run deploy transitx-api \
+  --image $IMAGE_NAME \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated
 ```
+
+Cloud Run automatically deploys the updated container, exposing a publicly accessible API endpoint.
 
 ---
 
 
-## What This CI/CD Pipeline Provides
+## 4. Benefits of This CI/CD Pipeline
 
-### ✔ Automatic Docker image builds
-Every time you update the API, models, or pipeline.
-### ✔ Consistent, reproducible deployments
-Ensures your cloud deployment always uses the latest validated container.
-### ✔ DVC artifact restoration
-Prevents missing model files inside Docker.
-### ✔ Safe code through smoke tests
-Catches syntax errors early.
-### ✔ Ready for cloud deployment
-ACA or any container service can pull `transitx:latest` immediately after CI finishes.
+- **Automatic Docker image builds:** Every update to the API, models, or pipeline triggers a build.
+- **Consistent, reproducible deployments:** The live API always uses validated containers.
+- **DVC artifact restoration:** Ensures that models and data are included in the image.
+- **Safe code validation:** Syntax and structural checks prevent broken deployments.
+- **Automated Cloud Run deployment:** The API is updated automatically with every commit.
 
 ---
 
 
-## What CI/CD Does Not Do (By Design)
+## 5. Limitations (By Design)
 
-- It does not deploy automatically to Azure
-- It does not run model training
-- It does not execute Airflow tasks
-- It does not run unit tests (optional for future)
+- Model training is not executed
+- Airflow tasks are not run
+- Unit tests are not included (optional for future)
 
-This keeps your pipeline lightweight and fast while still demonstrating real **DevOps + MLOps skills**.
+The design keeps the CI/CD pipeline **lightweight, fast, and focused on production deployment**, demonstrating robust **DevOps + MLOps** practices.
 
-This CI/CD pipeline elevates TransitX into a production-ready, automation-enabled ML system.
 
 ---
