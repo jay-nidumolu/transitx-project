@@ -1,4 +1,4 @@
-# TransitX — Transit Delay Prediction (Azure End-to-End, MLOps Project)
+# TransitX — Cloud-Native, Real-Time, Production-Ready Transit Delay Prediction (Analytics · Machine Learning · Data Engineering · CI/CD)
 **TransitX** is a full end-to-end MLOps system that predicts TTC bus delay duration and delay likelihood using:
 - Multi-year TTC delay data
 - Weather history & weather forecasts
