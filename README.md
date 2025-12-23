@@ -136,19 +136,28 @@ See full details:
 ### High-Level Architecture
 ```mermaid
 flowchart TB
-    A["TTC Delay Data + Weather API"] --> B["ETL: extract.py"]
-    B --> C["Cloud Storage (raw)"]
-    C --> D["transform.py"]
-    D --> E["Cloud Storage (processed)"]
-    E --> F["feature_eng.py"]
-    F --> G["Cloud Storage (model-input)"]
-    G --> H["Model Training (XGBoost)"]
-    H --> I["DVC-Tracked Models & Encoders"]
-    I --> J["FastAPI (app.py)"]
-    J --> K["Docker Image"]
-    K --> L["Google Artifact Registry"]
-    L --> M["Google Cloud Run Deployment"]
-    M --> N["Public HTTPS Endpoint (/predict)"]
+
+A["TTC Delay Data<br/>+ Weather APIs"] --> B["ETL<br/>extract.py"]
+B --> C["GCS<br/>(raw data)"]
+
+C --> D["Transform & Clean<br/>transform.py"]
+D --> E["GCS<br/>(processed data)"]
+
+E --> F["Feature Engineering<br/>feature_eng.py"]
+F --> G["GCS<br/>(model inputs)"]
+
+G --> H["Model Training<br/>XGBoost"]
+H --> I["DVC-Tracked<br/>Models & Encoders"]
+
+I --> J["FastAPI<br/>app.py"]
+J --> K["Docker Image"]
+
+K --> L["Google Artifact Registry"]
+L --> M["Google Cloud Run"]
+M --> N["Public HTTPS Endpoint<br/>/predict"]
+
+CI["GitHub Actions<br/>(CI/CD)"] --> K
+
 ```
 
 ---
